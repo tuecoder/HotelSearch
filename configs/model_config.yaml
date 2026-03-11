@@ -1,0 +1,7 @@
+ranking:
+  model_type: lightgbm
+  objective: lambdarank
+  ndcg_at: [10]
+serving:
+  max_candidates: 500
+  rerank_top_k: 50

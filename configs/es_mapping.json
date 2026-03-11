@@ -1,0 +1,12 @@
+{
+  "mappings": {
+    "properties": {
+      "city": {"type": "keyword"},
+      "name": {"type": "text"},
+      "description": {"type": "text"},
+      "amenities": {"type": "keyword"},
+      "price": {"type": "float"},
+      "rating": {"type": "float"}
+    }
+  }
+}

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hotel Search UI</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Booking-style Search Demo</p>
+        <h1>Hotel Search & Ranking</h1>
+        <p class="subhead">
+          Type a natural query and see a simplified multi-stage ranking preview.
+        </p>
+        <form class="search" action="/search" method="get">
+          <input
+            type="text"
+            name="q"
+            placeholder='"Amsterdam, 2 adults, June 15-18, pool, < $150"'
+            value="{{ query or '' }}"
+          />
+          <button type="submit">Search</button>
+        </form>
+      </header>
+
+      <!-- Stage 0a: Query Preprocessing -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Query Preprocessing</h2>
+          <span class="tag">Stage 0 · Step 1</span>
+        </div>
+        {% if preprocessed %}
+        <div class="grid">
+          <div>
+            <p class="label">Normalized</p>
+            <p>{{ preprocessed.normalized }}</p>
+          </div>
+          <div>
+            <p class="label">Tokens</p>
+            <p>{{ preprocessed.tokens | join(', ') }}</p>
+          </div>
+          <div>
+            <p class="label">Lemmas (no stopwords)</p>
+            <p>{{ preprocessed.lemmas | join(', ') }}</p>
+          </div>
+          <div>
+            <p class="label">Synonym Expansions</p>
+            <p>
+              {% if preprocessed.expanded_terms %}
+                {% for term, syns in preprocessed.expanded_terms.items() %}
+                  <em>{{ term }}</em> → {{ syns | join(', ') }}<br/>
+                {% endfor %}
+              {% else %}
+                None
+              {% endif %}
+            </p>
+          </div>
+        </div>
+        {% else %}
+        <p class="muted">Enter a query to see preprocessing output.</p>
+        {% endif %}
+      </section>
+
+      <!-- Stage 0b: Entity Extraction / Structured Query -->
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Structured Query</h2>
+          <span class="tag">Stage 0 · Step 2</span>
+        </div>
+        {% if parsed %}
+        <div class="grid">
+          <div>
+            <p class="label">Destination</p>
+            <p>{{ parsed.destination or 'Unknown' }}</p>
+          </div>
+          <div>
+            <p class="label">Dates</p>
+            <p>
+              {% if parsed.checkin and parsed.checkout %}
+                {{ parsed.checkin.strftime('%b %d') }} – {{ parsed.checkout.strftime('%b %d') }}
+              {% else %}
+                Unknown
+              {% endif %}
+            </p>
+          </div>
+          <div>
+            <p class="label">Guests</p>
+            <p>{{ parsed.guests or 'Unknown' }}</p>
+          </div>
+          <div>
+            <p class="label">Max Price</p>
+            <p>{{ parsed.max_price or 'Any' }}</p>
+          </div>
+          <div>
+            <p class="label">Amenities</p>
+            <p>{{ parsed.amenities | join(', ') if parsed.amenities else 'Any' }}</p>
+          </div>
+          <div>
+            <p class="label">Budget Tier</p>
+            <p>{{ parsed.budget or 'Unknown' }}</p>
+          </div>
+          <div>
+            <p class="label">Flexible Dates</p>
+            <p>{{ parsed.flexible or 'Unknown' }}</p>
+          </div>
+        </div>
+        {% else %}
+        <p class="muted">Enter a query to see the structured fields.</p>
+        {% endif %}
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Ranked Results</h2>
+          <span class="tag">Stage 2</span>
+        </div>
+        {% if results %}
+        <div class="results">
+          {% for item in results %}
+          <article class="card">
+            <div>
+              <h3>{{ item.name }}</h3>
+              <p class="meta">{{ item.city }}, {{ item.country }} · {{ item.stars }}★ · Rating {{ item.rating }}</p>
+              <p class="meta">{{ item.address }}</p>
+              <div class="desc">{{ item.description | safe }}</div>
+              <p class="amenities">Amenities: {{ item.amenities | join(', ') if item.amenities else 'N/A' }}</p>
+              {% if item.phone and item.phone not in ('nan', 'N/A') %}
+              <p class="meta">📞 {{ item.phone }}</p>
+              {% endif %}
+            </div>
+            <div class="price">
+              <p>{{ item.stars }}★</p>
+              <span>score {{ item.score }}</span>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted">No results yet. Try a query to see ranked properties.</p>
+        {% endif %}
+      </section>
+    </main>
+  </body>
+</html>
