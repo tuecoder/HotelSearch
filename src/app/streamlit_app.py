@@ -145,10 +145,75 @@ DUCKLING_URL = "http://localhost:8000/parse"
 DUCKLING_TIMEOUT = 2  # seconds — don't stall the UI if the server is down
 GUESTS_RE = re.compile(r"(\d+)\s*(adults|guests|people)")
 PRICE_RE = re.compile(r"<\s*\$?(\d+)|under\s*\$?(\d+)")
+# Canonical amenity name → all surface forms the user might type.
+# Match order within each group doesn't matter; longer phrases should appear
+# before shorter ones so the combined regex greedily picks them up first.
+AMENITY_SYNONYMS: dict[str, list[str]] = {
+    "pool": [
+        "swimming pool", "indoor pool", "outdoor pool", "rooftop pool",
+        "infinity pool", "baby pool", "heated pool", "pool",
+    ],
+    "wifi": [
+        "wi-fi", "wi fi", "wireless internet", "wireless", "internet", "wifi",
+    ],
+    "gym": [
+        "fitness center", "fitness centre", "fitness room", "fitness club",
+        "workout room", "health club", "gym",
+    ],
+    "spa": [
+        "wellness center", "wellness centre", "thermal bath", "hot tub",
+        "jacuzzi", "sauna", "steam room", "spa",
+    ],
+    "breakfast": [
+        "breakfast included", "full board", "half board", "all inclusive",
+        "bed and breakfast", "buffet breakfast", "breakfast", "free breakfast"
+    ],
+    "parking": [
+        "free parking", "private parking", "car park", "garage", "parking",
+    ],
+    "family rooms": [
+        "family suite", "family apartment", "family friendly",
+        "kids friendly", "child friendly", "family rooms",
+    ],
+    "restaurant": [
+        "on-site restaurant", "dining", "restaurant",
+    ],
+    "bar": [
+        "cocktail bar", "rooftop bar", "lounge bar", "bar",
+    ],
+    "bike rental": [
+        "bicycle rental", "bike hire", "bicycle hire", "cycling", "bike rental",
+    ],
+    "air conditioning": [
+        "air con", "ac", "a/c", "climate control", "air conditioning",
+    ],
+    "pet friendly": [
+        "pets allowed", "dogs allowed", "dog friendly", "pet friendly",
+    ],
+    "airport shuttle": [
+        "airport transfer", "airport pickup", "shuttle service", "airport shuttle",
+    ],
+}
+
+# Build a single compiled regex: longest phrases first (avoids partial matches).
+# Each alternative is wrapped in a named group so we can map match → canonical.
+_amenity_alternatives: list[tuple[str, str]] = []
+for _canonical, _synonyms in AMENITY_SYNONYMS.items():
+    for _syn in sorted(_synonyms, key=len, reverse=True):
+        _amenity_alternatives.append((_canonical, _syn))
+
+_amenity_alternatives.sort(key=lambda t: len(t[1]), reverse=True)
+
 AMENITY_RE = re.compile(
-    r"\b(pool|gym|wifi|spa|breakfast|parking|family rooms|restaurant|bar|bike rental)\b",
-    re.IGNORECASE,
+    r"(?i)\b(" + "|".join(re.escape(s) for _, s in _amenity_alternatives) + r")\b"
 )
+
+# Reverse lookup: normalised surface form → canonical name
+_AMENITY_SURFACE_TO_CANONICAL: dict[str, str] = {
+    s.lower(): canon
+    for canon, synonyms in AMENITY_SYNONYMS.items()
+    for s in synonyms
+}
 
 
 def _call_duckling(text: str) -> list[dict]:
@@ -209,7 +274,13 @@ def parse_query(raw: str) -> SearchQuery:
     if price_match:
         max_price = int(price_match.group(1) or price_match.group(2))
 
-    amenities = [m.group(1).lower() for m in AMENITY_RE.finditer(raw)]
+    seen: set[str] = set()
+    amenities = []
+    for m in AMENITY_RE.finditer(raw):
+        canonical = _AMENITY_SURFACE_TO_CANONICAL[m.group(1).lower()]
+        if canonical not in seen:
+            seen.add(canonical)
+            amenities.append(canonical)
     if not amenities:
         amenities = None
 

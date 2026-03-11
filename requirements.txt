@@ -10,7 +10,8 @@ markdown
 nltk
 unidecode
 pyspellchecker
-# Query Understanding — Budget Classifier (ONNX)
+# Query Understanding — Budget Classifier (ONNX + MLflow)
 scikit-learn
 skl2onnx
 onnxruntime
+mlflow

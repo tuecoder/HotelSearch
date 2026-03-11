@@ -22,7 +22,8 @@ Then open: http://127.0.0.1:8080
 | `make run` | Start the FastAPI app on port 8080 |
 | `make duckling` | Start the Duckling date-parser container (port 8000) |
 | `make dev` | Start Duckling in background, then launch the app |
-| `make train` | Retrain the budget classifier and export to ONNX |
+| `make train` | Train the budget classifier, log to MLflow, export to ONNX |
+| `make mlflow-ui` | Open the MLflow tracking UI at http://localhost:5000 |
 | `make install` | `pip install -r requirements.txt` |
 | `make install-dev` | Install dev extras: pytest, ruff, jupyter |
 | `make venv` | Create the `hotelenv` virtual environment |
@@ -37,6 +38,26 @@ Then open: http://127.0.0.1:8080
 | `make clean-all` | Remove cache and delete `hotelenv` entirely |
 
 Run `make help` to see this list at any time.
+
+## MLflow — Experiment Tracking & Model Registry
+
+Every `make train` run logs to a local SQLite database (`mlflow.db`) and registers the model.
+
+```bash
+make train       # train + log metrics + register model
+make mlflow-ui   # open http://localhost:5000
+```
+
+**What gets tracked per run:**
+
+| Category | Details |
+|---|---|
+| Parameters | TF-IDF settings, MLP architecture, train/test split |
+| Metrics | Accuracy, macro precision/recall/F1, per-class breakdown |
+| Artifacts | `budget_classifier.onnx` |
+| Model Registry | `budget-classifier` — version increments on every run |
+
+`mlflow.db` and `mlruns/` are in `.gitignore` — not committed to version control.
 
 ## Manual Setup (without make)
 

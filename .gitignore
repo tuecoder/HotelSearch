@@ -51,6 +51,10 @@ models/*.bin
 # keep the folder
 !models/.gitkeep
 
+# ── MLflow ───────────────────────────────────────────────────────────────────
+mlflow.db
+mlruns/
+
 # ── OS artefacts ─────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db

@@ -64,8 +64,11 @@ dev:           ## Start Duckling in background then launch the app
 # ============================================================
 .PHONY: train
 
-train:         ## Train the budget classifier and export to ONNX
+train:         ## Train the budget classifier, track with MLflow, export to ONNX
 	$(PYTHON) -m src.query_understanding.budget_classifier
+
+mlflow-ui:     ## Open the MLflow tracking UI (http://localhost:5000)
+	$(PYTHON) -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
 
 # ============================================================
 #  NOTEBOOK
