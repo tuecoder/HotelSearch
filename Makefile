@@ -55,8 +55,8 @@ run:           ## Start the FastAPI app on port $(APP_PORT)
 duckling:      ## Start the Duckling date-parser container (port 8000)
 	docker-compose up duckling
 
-dev:           ## Start Duckling in background then launch the app
-	docker-compose up -d duckling
+dev:           ## Start Duckling + Elasticsearch in background, then launch the app
+	docker-compose up -d duckling elasticsearch
 	$(PYTHON) -m uvicorn $(APP_MODULE) --reload --port $(APP_PORT)
 
 # ============================================================
@@ -66,6 +66,9 @@ dev:           ## Start Duckling in background then launch the app
 
 train:         ## Train the budget classifier, track with MLflow, export to ONNX
 	$(PYTHON) -m src.query_understanding.budget_classifier
+
+index:         ## Build the Elasticsearch hotels index (run once after ES starts)
+	$(PYTHON) -m src.retrieval.es_indexer
 
 mlflow-ui:     ## Open the MLflow tracking UI (http://localhost:5000)
 	$(PYTHON) -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000

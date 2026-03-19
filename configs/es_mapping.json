@@ -1,12 +1,18 @@
 {
   "mappings": {
     "properties": {
-      "city": {"type": "keyword"},
-      "name": {"type": "text"},
-      "description": {"type": "text"},
-      "amenities": {"type": "keyword"},
-      "price": {"type": "float"},
-      "rating": {"type": "float"}
+      "id":          { "type": "integer" },
+      "name":        { "type": "text" },
+      "city":        { "type": "keyword" },
+      "country":     { "type": "keyword" },
+      "stars":       { "type": "integer" },
+      "rating":      { "type": "float" },
+      "address":     { "type": "text" },
+      "attractions": { "type": "text" },
+      "description": { "type": "text" },
+      "amenities":   { "type": "keyword" },
+      "phone":       { "type": "keyword", "index": false },
+      "fax":         { "type": "keyword", "index": false }
     }
   }
 }

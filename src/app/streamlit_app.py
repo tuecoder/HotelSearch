@@ -18,6 +18,7 @@ from pydantic import BaseModel
 # Allow imports from project root
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from src.query_understanding.preprocessing import PreprocessedQuery, preprocess
+from src.retrieval.es_retriever import retrieve_candidates as _es_retrieve_candidates
 from src.query_understanding.budget_classifier import BudgetClassifier, BudgetTier
 from src.query_understanding.flexibility_detector import detect as detect_flexibility
 
@@ -309,14 +310,16 @@ def score_property(query: SearchQuery, prop: dict[str, Any]) -> float:
 
 
 def retrieve_candidates(query: SearchQuery) -> list[dict[str, Any]]:
-    candidates = []
-    for prop in PROPERTIES:
-        if query.destination and prop["city"].lower() != query.destination.lower():
-            continue
-        candidates.append(prop)
-    if not candidates:
-        candidates = PROPERTIES
-    return candidates
+    try:
+        return _es_retrieve_candidates(query.destination)
+    except Exception:
+        # Graceful fallback to in-memory filter if ES is not running
+        candidates = [
+            p for p in PROPERTIES
+            if not query.destination
+            or p["city"].lower() == query.destination.lower()
+        ]
+        return candidates or list(PROPERTIES)
 
 
 def rank_candidates(
