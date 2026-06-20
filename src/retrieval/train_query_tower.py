@@ -2,12 +2,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import mlflow
-import onnxruntime as rt
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
+# skl2onnx must be imported before onnxruntime to avoid DLL init conflict on Windows
 from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
+import onnxruntime as rt
 
 from src.data_pipeline.build_query_features import encode_query
 
@@ -37,6 +38,14 @@ def train_query_tower(
 
     id_to_row = dict(zip(index_df["hotel_id"], index_df["row_idx"]))
     hotel_ids = pos["i__hotel_id"].values
+
+    valid_mask = np.array([hid in id_to_row for hid in hotel_ids])
+    if not valid_mask.all():
+        n_missing = (~valid_mask).sum()
+        print(f"[warn] {n_missing} hotel_ids in pairs not found in index — skipping")
+    X = X[valid_mask]
+    hotel_ids = hotel_ids[valid_mask]
+
     y = np.array([embeddings[id_to_row[hid]] for hid in hotel_ids], dtype=np.float32)
 
     X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.25, random_state=42)
@@ -76,13 +85,14 @@ def train_query_tower(
         mlflow.sklearn.log_model(model, "query_tower_sklearn",
                                  registered_model_name="query-tower")
 
-    # Quick verify
+    # Quick verify — skl2onnx ≥1.17 produces (n_targets, 1) for multi-output
+    # regressors, so normalise to a flat vector before shape-checking.
     sess = rt.InferenceSession(str(model_out))
     input_name = sess.get_inputs()[0].name
     dummy = np.zeros((1, X.shape[1]), dtype=np.float32)
     out = sess.run(None, {input_name: dummy})[0]
-    assert out.shape == (1, 24), f"ONNX output shape mismatch: {out.shape}"
-    print(f"ONNX verify OK — output shape: {out.shape}")
+    assert out.size == 24, f"ONNX output size mismatch: expected 24, got {out.size}"
+    print(f"ONNX verify OK — output shape: {out.shape} (size={out.size})")
 
     return mean_sim
 

@@ -20,7 +20,21 @@ def test_retrieve_by_vector_builds_knn_query():
     assert knn["field"] == "tower_embedding"
     assert knn["query_vector"] == [0.1] * 24
     assert knn["k"] == 10
-    assert knn["num_candidates"] == 500
+    assert knn["num_candidates"] == max(500, 10 * 5)  # 500 (since 50 < 500)
+
+
+def test_retrieve_by_vector_large_size_scales_num_candidates():
+    fake_resp = {"hits": {"hits": []}}
+    mock_es = MagicMock()
+    mock_es.search.return_value = fake_resp
+
+    with patch("elasticsearch.Elasticsearch", return_value=mock_es):
+        from src.retrieval.es_retriever import retrieve_by_vector
+        retrieve_by_vector([0.0] * 24, size=200)
+
+    knn = mock_es.search.call_args.kwargs["knn"]
+    assert knn["k"] == 200
+    assert knn["num_candidates"] == 1000  # max(500, 200 * 5)
 
 
 def test_retrieve_by_vector_default_size_is_100():

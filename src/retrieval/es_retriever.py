@@ -104,7 +104,7 @@ def retrieve_by_vector(
             "field":          "tower_embedding",
             "query_vector":   query_vector,
             "k":              size,
-            "num_candidates": 500,
+            "num_candidates": max(500, size * 5),
         },
     )
     return [hit["_source"] for hit in resp["hits"]["hits"]]
