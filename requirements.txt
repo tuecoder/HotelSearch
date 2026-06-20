@@ -13,7 +13,10 @@ pyspellchecker
 # Query Understanding — Budget Classifier (ONNX + MLflow)
 scikit-learn
 skl2onnx
-onnxruntime
+onnxruntime==1.20.1
 mlflow
 # Retrieval — Elasticsearch
 elasticsearch>=8.0,<9.0
+# Data Pipeline — Item features for two-tower retrieval
+fastembed
+pyarrow
