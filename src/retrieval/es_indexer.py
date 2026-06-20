@@ -15,9 +15,13 @@ import re
 from pathlib import Path
 from typing import Any
 
+import numpy as np
+
 _ROOT        = Path(__file__).resolve().parents[2]
 _EXCEL_PATH  = _ROOT / "data" / "processed" / "netherlands_hotels.xlsx"
 _MAPPING_PATH = _ROOT / "configs" / "es_mapping.json"
+_EMBEDDING_PATH = _ROOT / "data" / "processed" / "item_tower_embeddings.npy"
+_INDEX_PATH     = _ROOT / "data" / "processed" / "item_tower_index.parquet"
 
 ES_HOST  = "http://localhost:9200"
 INDEX    = "hotels"
@@ -44,6 +48,30 @@ _AMENITY_KEYWORDS: dict[str, list[str]] = {
     "bar":          ["bar", "lounge"],
     "bike rental":  ["bicycle", "bike rental"],
 }
+
+
+def _attach_embeddings(
+    hotels: list[dict],
+    emb_path: Path = _EMBEDDING_PATH,
+    idx_path: Path = _INDEX_PATH,
+) -> None:
+    """Attach tower_embedding to each hotel dict in-place by matching on hotel name.
+
+    No-op (with warning) if embedding files are missing.
+    """
+    if not emb_path.exists() or not idx_path.exists():
+        print(f"[warn] Embeddings not found at {emb_path} — skipping tower_embedding field")
+        return
+
+    import pandas as pd
+    embeddings = np.load(emb_path)
+    index_df   = pd.read_parquet(idx_path)
+    name_to_row = dict(zip(index_df["hotel_name"].str.strip(), index_df["row_idx"]))
+
+    for hotel in hotels:
+        row = name_to_row.get(hotel["name"].strip())
+        if row is not None:
+            hotel["tower_embedding"] = embeddings[row].tolist()
 
 
 def _clean_description(raw: str) -> str:
@@ -120,6 +148,7 @@ def build_index(es_host: str = ES_HOST, index: str = INDEX) -> None:
 
     # Load and bulk-index
     hotels = _load_hotels()
+    _attach_embeddings(hotels)          # attach pre-computed tower embeddings
     actions = [
         {"_index": index, "_id": h["id"], "_source": h}
         for h in hotels
