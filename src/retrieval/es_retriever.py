@@ -66,3 +66,45 @@ def retrieve_candidates(
 
     resp = es.search(index=index, query=query, size=size)
     return [hit["_source"] for hit in resp["hits"]["hits"]]
+
+
+def retrieve_by_vector(
+    query_vector: list[float],
+    *,
+    size: int = 100,
+    es_host: str = ES_HOST,
+    index: str = INDEX,
+) -> list[dict[str, Any]]:
+    """Return hotels ranked by cosine similarity to *query_vector* via kNN.
+
+    Parameters
+    ----------
+    query_vector:
+        24-dimensional float vector produced by the query tower.
+    size:
+        Number of results to return (default 100).
+    es_host:
+        Elasticsearch base URL (override for testing).
+    index:
+        Index name (override for testing).
+
+    Returns
+    -------
+    list[dict]
+        Each dict has the same keys as the PROPERTIES entries in the app:
+        id, name, city, country, stars, rating, address, attractions,
+        description, amenities, phone, fax.
+    """
+    from elasticsearch import Elasticsearch
+
+    es = Elasticsearch(es_host)
+    resp = es.search(
+        index=index,
+        knn={
+            "field":          "tower_embedding",
+            "query_vector":   query_vector,
+            "k":              size,
+            "num_candidates": 500,
+        },
+    )
+    return [hit["_source"] for hit in resp["hits"]["hits"]]
