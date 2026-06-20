@@ -2,6 +2,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import mlflow
+import onnxruntime as rt
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics.pairwise import cosine_similarity
@@ -76,7 +77,6 @@ def train_query_tower(
                                  registered_model_name="query-tower")
 
     # Quick verify
-    import onnxruntime as rt
     sess = rt.InferenceSession(str(model_out))
     input_name = sess.get_inputs()[0].name
     dummy = np.zeros((1, X.shape[1]), dtype=np.float32)

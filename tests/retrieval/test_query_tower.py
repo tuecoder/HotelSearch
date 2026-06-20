@@ -6,9 +6,8 @@ ROOT = Path(__file__).resolve().parents[2]
 ONNX_PATH = ROOT / "models" / "query_tower.onnx"
 
 
-@pytest.mark.skipif(not ONNX_PATH.exists(), reason="models/query_tower.onnx not found — run train_query_tower")
 def test_query_tower_onnx_exists():
-    assert ONNX_PATH.exists(), "models/query_tower.onnx not found — run train_query_tower"
+    assert ONNX_PATH.exists(), "models/query_tower.onnx not found — run: make train-towers"
 
 
 @pytest.mark.skipif(not ONNX_PATH.exists(), reason="models/query_tower.onnx not found — run train_query_tower")
