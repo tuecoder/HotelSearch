@@ -62,13 +62,28 @@ dev:           ## Start Duckling + Elasticsearch in background, then launch the 
 # ============================================================
 #  TRAINING
 # ============================================================
-.PHONY: train
+.PHONY: train gen-queries train-towers item-embeddings
 
 train:         ## Train the budget classifier, track with MLflow, export to ONNX
 	$(PYTHON) -m src.query_understanding.budget_classifier
 
+# Two-tower run order: features → gen-queries → train-towers → item-embeddings → index
+gen-queries:   ## Generate synthetic query dataset (run after: features)
+	$(PYTHON) -m src.data_pipeline.generate_queries
+	$(PYTHON) -m src.data_pipeline.build_query_item_pairs
+
+train-towers:  ## Train item + query towers, log to MLflow (run after: gen-queries)
+	$(PYTHON) -m src.retrieval.item_tower
+	$(PYTHON) -m src.retrieval.train_query_tower
+
+item-embeddings: ## Compute item tower embeddings for all hotels (run after: train-towers)
+	$(PYTHON) -m src.data_pipeline.build_item_embeddings
+
 index:         ## Build the Elasticsearch hotels index (run once after ES starts)
 	$(PYTHON) -m src.retrieval.es_indexer
+
+features:      ## Build item feature matrix + embeddings for two-tower retrieval
+	$(PYTHON) -m src.data_pipeline.build_item_features
 
 mlflow-ui:     ## Open the MLflow tracking UI (http://localhost:5000)
 	$(PYTHON) -m mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5000
