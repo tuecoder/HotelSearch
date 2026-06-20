@@ -12,7 +12,13 @@
       "description": { "type": "text" },
       "amenities":   { "type": "keyword" },
       "phone":       { "type": "keyword", "index": false },
-      "fax":         { "type": "keyword", "index": false }
+      "fax":         { "type": "keyword", "index": false },
+      "tower_embedding": {
+        "type": "dense_vector",
+        "dims": 24,
+        "index": true,
+        "similarity": "cosine"
+      }
     }
   }
 }
